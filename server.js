@@ -26,7 +26,7 @@ client.on('ready', () => {
 
 client.initialize();
 
-const API_KEY = 'my-secret-token'; // change this for security
+const API_KEY = 'fffjhjfjffjjffjfjmy-secret-token'; // change this for security
 
 // Route: show QR code
 app.get('/qr', (req, res) => {
