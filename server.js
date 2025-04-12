@@ -1,37 +1,58 @@
-// server.js
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode');
 const express = require('express');
+const qrcode = require('qrcode');
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const bodyParser = require('body-parser');
+
 const app = express();
+app.use(bodyParser.json());
 
 const client = new Client({
-    authStrategy: new LocalAuth(),
-    puppeteer: {
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-    }
+  authStrategy: new LocalAuth(),
+  puppeteer: { args: ['--no-sandbox', '--disable-setuid-sandbox'] },
 });
 
-let qrCodeData = null;
+let qrImage = '';
+let isReady = false;
 
 client.on('qr', async (qr) => {
-    console.log('New QR generated');
-    qrCodeData = await qrcode.toDataURL(qr); // Store QR as image data
+  qrImage = await qrcode.toDataURL(qr);
+  isReady = false;
 });
 
 client.on('ready', () => {
-    console.log('✅ WhatsApp is ready!');
+  console.log('✅ WhatsApp is ready!');
+  isReady = true;
 });
 
 client.initialize();
 
-app.get('/', (req, res) => {
-    res.send('<h2>🔗 WhatsApp QR Login</h2><p>Go to /qr to get the QR Code</p>');
+const API_KEY = 'my-secret-token'; // change this for security
+
+// Route: show QR code
+app.get('/qr', (req, res) => {
+  if (!qrImage) return res.send('❌ QR not ready');
+  res.send(`<img src="${qrImage}" alt="Scan QR to login" />`);
 });
 
-app.get('/qr', (req, res) => {
-    if (!qrCodeData) return res.send('❌ QR not generated yet. Please refresh.');
-    res.send(`<img src="${qrCodeData}" alt="Scan this QR" />`);
+// Route: check if WhatsApp is connected
+app.get('/status', (req, res) => {
+  res.json({ status: isReady ? 'ready' : 'not_ready' });
+});
+
+// Route: send message (secured)
+app.post('/send', async (req, res) => {
+  const { token, phone, message } = req.body;
+  if (token !== API_KEY) return res.status(403).json({ error: 'Invalid token' });
+
+  if (!isReady) return res.status(400).json({ error: 'WhatsApp not ready' });
+
+  try {
+    await client.sendMessage(`${phone}@c.us`, message);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`🚀 App running at http://localhost:${port}`));
+app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
