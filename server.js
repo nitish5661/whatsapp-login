@@ -42,9 +42,13 @@ app.get('/status', (req, res) => {
 // Route: send message (secured)
 app.post('/send', async (req, res) => {
   const { token, phone, message } = req.body;
-  if (token !== API_KEY) return res.status(403).json({ error: 'Invalid token' });
+  if (token !== 'fffjhjfjffjjffjfjmy-secret-token') {
+    return res.status(403).json({ error: 'Invalid token' });
+  }
 
-  if (!isReady) return res.status(400).json({ error: 'WhatsApp not ready' });
+  if (!isReady) {
+    return res.status(400).json({ error: 'WhatsApp not ready' });
+  }
 
   try {
     await client.sendMessage(`${phone}@c.us`, message);
