@@ -2,8 +2,11 @@ const express = require('express');
 const qrcode = require('qrcode');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const bodyParser = require('body-parser');
+const cors = require('cors');  // Import CORS package
 
 const app = express();
+app.use(cors());  // Enable CORS for all origins (you can restrict it later if needed)
+
 app.use(bodyParser.json());
 
 const client = new Client({
@@ -26,7 +29,7 @@ client.on('ready', () => {
 
 client.initialize();
 
-const API_KEY = 'fffjhjfjffjjffjfjmy-secret-token'; // change this for security
+const API_KEY = 'fffjhjfjffjjffjfjmy-secret-token'; // Change this for security
 
 // Route: show QR code
 app.get('/qr', (req, res) => {
@@ -42,13 +45,9 @@ app.get('/status', (req, res) => {
 // Route: send message (secured)
 app.post('/send', async (req, res) => {
   const { token, phone, message } = req.body;
-  if (token !== 'fffjhjfjffjjffjfjmy-secret-token') {
-    return res.status(403).json({ error: 'Invalid token' });
-  }
+  if (token !== API_KEY) return res.status(403).json({ error: 'Invalid token' });
 
-  if (!isReady) {
-    return res.status(400).json({ error: 'WhatsApp not ready' });
-  }
+  if (!isReady) return res.status(400).json({ error: 'WhatsApp not ready' });
 
   try {
     await client.sendMessage(`${phone}@c.us`, message);
